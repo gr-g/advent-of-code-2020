@@ -18,7 +18,7 @@ fn solve(input: &str) -> (usize, usize) {
         .map(seat)
         .map(|(row, col)| row*8+col)
         .collect();
-    
+
     seat_ids.sort();
     let min_id = seat_ids[0];
     let max_id = seat_ids[seat_ids.len()-1];

@@ -16,12 +16,12 @@ impl Passport {
         }
         Passport { fields }
     }
-    
+
     fn is_complete(&self) -> bool {
         [ "byr", "iyr", "eyr", "hgt", "hcl", "ecl", "pid" ]
             .iter().all(|&f| self.fields.contains_key(f))
     }
-    
+
     fn is_valid(&self) -> bool {
         if !self.is_complete() { return false; }
         let pass = &self.fields;
@@ -72,7 +72,7 @@ impl Passport {
         }) {
             return false;
         }
-        
+
         // validate Eye Color
         if ![ "amb", "blu", "brn", "gry", "grn", "hzl", "oth" ].contains(&pass["ecl"].as_str()) {
             return false;

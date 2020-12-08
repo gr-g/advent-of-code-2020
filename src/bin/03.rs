@@ -16,7 +16,7 @@ fn trees_on_slope( grid: &Grid, slope_x: i64, slope_y: i64 ) -> i64 {
 
 fn solve(input: &str) -> (i64, i64) {
     let g = Grid::create_from(input);
-    
+
     let count_1_1 = trees_on_slope(&g, 1, 1);
     let count_3_1 = trees_on_slope(&g, 3, 1);
     let count_5_1 = trees_on_slope(&g, 5, 1);

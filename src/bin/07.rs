@@ -18,7 +18,7 @@ fn solve(input: &str) -> (usize, usize) {
             .collect();
         rules.insert(outer, inner);
     }
-    
+
     let mut can_contain = HashSet::new();
     let mut target = vec!["shiny gold"];
     while let Some(target_color) = target.pop() {
@@ -68,7 +68,7 @@ vibrant plum bags contain 5 faded blue bags, 6 dotted black bags.
 faded blue bags contain no other bags.
 dotted black bags contain no other bags."), (4, 32));
     }
-    
+
     #[test]
     fn example02() {
         assert_eq!(solve("\

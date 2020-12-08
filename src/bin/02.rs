@@ -8,17 +8,17 @@ impl DatabaseEntry {
         let mut parts = s.split(": ");
         let mut policy_parts = parts.next().unwrap().split(' ');
         let mut policy_nums = policy_parts.next().unwrap().split('-');
-        
+
         let policy = (
             policy_nums.next().unwrap().parse().unwrap(),
             policy_nums.next().unwrap().parse().unwrap(),
             policy_parts.next().unwrap().chars().nth(0).unwrap(),
         );
         let password = parts.next().unwrap().to_string();
-        
+
         DatabaseEntry { policy, password }
     }
-    
+
     fn is_valid1(&self) -> bool {
         let (min, max, c) = self.policy;
         let n = self.password.chars().filter(|x| *x == c).count();
@@ -34,7 +34,7 @@ impl DatabaseEntry {
 
 fn solve(input: &str) -> (usize, usize) {
     let v: Vec<_> = input.lines().map(DatabaseEntry::create_from).collect();
-    
+
     let n_valid1 = v.iter().filter(|p| p.is_valid1()).count();
     let n_valid2 = v.iter().filter(|p| p.is_valid2()).count();
 
