@@ -7,41 +7,10 @@ pub enum Direction {
     Down,
     Left,
     Right,
-}
-
-impl Direction {
-    pub fn left(self) -> Direction {
-        match self {
-            Self::Up => Self::Left,
-            Self::Down => Self::Right,
-            Self::Left => Self::Down,
-            Self::Right => Self::Up,
-        }
-    }
-
-    pub fn right(self) -> Direction {
-        match self {
-            Self::Up => Self::Right,
-            Self::Down => Self::Left,
-            Self::Left => Self::Up,
-            Self::Right => Self::Down,
-        }
-    }
-
-    pub fn reverse(self) -> Direction {
-        match self {
-            Self::Up => Self::Down,
-            Self::Down => Self::Up,
-            Self::Left => Self::Right,
-            Self::Right => Self::Left,
-        }
-    }
-}
-
-#[derive(Clone, Copy, Debug, Hash, PartialOrd, Ord, PartialEq, Eq)]
-pub struct Location {
-    pub x: i64, // steps right from the reference point
-    pub y: i64, // steps down from the reference point
+    UpLeft,
+    UpRight,
+    DownLeft,
+    DownRight,
 }
 
 impl Location {
@@ -51,8 +20,18 @@ impl Location {
             Direction::Down => Location{ x: self.x, y: self.y + 1 },
             Direction::Left => Location{ x: self.x - 1, y: self.y },
             Direction::Right => Location{ x: self.x + 1, y: self.y },
+            Direction::UpLeft => Location{ x: self.x - 1, y: self.y - 1 },
+            Direction::UpRight => Location{ x: self.x + 1, y: self.y - 1 },
+            Direction::DownLeft => Location{ x: self.x - 1, y: self.y + 1 },
+            Direction::DownRight => Location{ x: self.x + 1, y: self.y + 1 },
         }
     }
+}
+
+#[derive(Clone, Copy, Debug, Hash, PartialOrd, Ord, PartialEq, Eq)]
+pub struct Location {
+    pub x: i64, // steps right from the reference point
+    pub y: i64, // steps down from the reference point
 }
 
 #[derive(Default)]
