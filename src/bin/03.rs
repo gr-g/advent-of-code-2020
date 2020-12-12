@@ -5,7 +5,7 @@ fn trees_on_slope( grid: &Grid, slope_x: i64, slope_y: i64 ) -> i64 {
     let (mut x, mut y) = (slope_x, slope_y);
     let mut count = 0;
     while y < y_len {
-        if grid.symbols.get(&Location{ x, y }) == Some(&'#') {
+        if grid.get(&Location{ x, y }) == Some(&'#') {
             count += 1;
         }
         x = (x + slope_x) % x_len;
