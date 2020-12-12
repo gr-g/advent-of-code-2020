@@ -84,6 +84,9 @@ impl Grid {
     pub fn find( &self, c: char ) -> Option<&Location> {
         self.symbols.iter().find(|(_, sym)| **sym == c ).map(|(loc, _)| loc)
     }
+    pub fn values(&self) -> impl Iterator<Item = (Location, &char)> {
+        self.symbols.iter().map(|(l, c)| (*l, c))
+    }
 }
 
 impl Display for Grid {

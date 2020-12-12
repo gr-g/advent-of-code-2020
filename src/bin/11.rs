@@ -1,5 +1,5 @@
 use advent_of_code_2020::grid::{Direction::*, Grid, Location};
-use std::collections::HashMap;
+use std::collections::HashSet;
 
 fn count_adjacent_occupied( g: &Grid, pos: &Location ) -> usize {
     [Up, Down, Left, Right, UpLeft, UpRight, DownLeft, DownRight]
@@ -29,56 +29,79 @@ fn count_visible_occupied( g: &Grid, pos: &Location ) -> usize {
 
 fn solve(input: &str) -> (usize, usize) {
     let mut model1 = Grid::create_from(input);
-    let mut count = HashMap::new();
-    let mut changed = true;
-    while changed {
-        count.clear();
-        changed = false;
 
-        // count adjacent occupied seats
-        for (pos, c) in &model1.symbols {
-            match *c {
-                'L' | '#' => { count.insert(*pos, count_adjacent_occupied(&model1, pos)); },
-                _ => {},
-            }
-        }
+    let mut to_be_checked = HashSet::new();
+    let mut to_be_changed = Vec::new();
 
-        // update seat states
-        for (pos, n) in &count {
-            match (model1.get(&pos), n) {
-                (Some('L'), 0)            => { model1.insert(*pos, '#'); changed = true; },
-                (Some('#'), n) if *n >= 4 => { model1.insert(*pos, 'L'); changed = true; },
-                _ => {},
-            }
+    // mark all seats as "to be checked"
+    for (l, c) in model1.values() {
+        if c == &'L' {
+            to_be_checked.insert(l);
         }
     }
-    let model1_occupied = model1.symbols.values().filter(|c| **c == '#').count();
+
+    while !to_be_checked.is_empty() {
+        // check seats and mark them as "to be changed"
+        // using the rules based on adjacent cells
+        for pos in to_be_checked.drain() {
+            match (model1.get(&pos), count_adjacent_occupied(&model1, &pos)) {
+                (Some('L'), 0) => { to_be_changed.push((pos, '#')); },
+                (Some('#'), n) if n >= 4 => { to_be_changed.push((pos, 'L')); },
+                _ => {},
+            }
+        }
+
+        // update seats and mark neighbours as "to be checked"
+        for (pos, c) in to_be_changed.drain(..) {
+            for d in &[Up, Down, Left, Right, UpLeft, UpRight, DownLeft, DownRight] {
+                to_be_checked.insert(pos.go(*d));
+            }
+
+            model1.insert(pos, c);
+        }
+    }
+    let model1_occupied = model1.values().filter(|(_, c)| *c == &'#').count();
 
     let mut model2 = Grid::create_from(input);
-    count = HashMap::new();
-    changed = true;
-    while changed {
-        count.clear();
-        changed = false;
 
-        // count visible occupied seats
-        for (pos, c) in &model2.symbols {
-            match *c {
-                'L' | '#' => { count.insert(*pos, count_visible_occupied(&model2, pos)); },
-                _ => {},
-            }
-        }
-
-        // update seat states
-        for (pos, n) in &count {
-            match (model2.get(&pos), n) {
-                (Some('L'), 0)            => { model2.insert(*pos, '#'); changed = true; },
-                (Some('#'), n) if *n >= 5 => { model2.insert(*pos, 'L'); changed = true; },
-                _ => {},
-            }
+    // mark all seats as "to be checked"
+    for (l, c) in model2.values() {
+        if c == &'L' {
+            to_be_checked.insert(l);
         }
     }
-    let model2_occupied = model2.symbols.values().filter(|c| **c == '#').count();
+
+    while !to_be_checked.is_empty() {
+        // check seats and mark them as "to be changed"
+        // using the rules based on visible cells
+        for pos in to_be_checked.drain() {
+            match (model2.get(&pos), count_visible_occupied(&model2, &pos)) {
+                (Some('L'), 0) => { to_be_changed.push((pos, '#')); },
+                (Some('#'), n) if n >= 5 => { to_be_changed.push((pos, 'L')); },
+                _ => {},
+            }
+        }
+
+        // update seats and mark neighbours as "to be checked"
+        for (pos, c) in to_be_changed.drain(..) {
+            for dir in &[Up, Down, Left, Right, UpLeft, UpRight, DownLeft, DownRight] {
+                let mut p = pos;
+                loop {
+                    p = p.go(*dir);
+                    let c = model1.get(&p);
+                    if c == Some(&'L') || c == Some(&'#') {
+                        to_be_checked.insert(p);
+                        break;
+                    } else if c == None {
+                        break;
+                    }
+                }
+            }
+
+            model2.insert(pos, c);
+        }
+    }
+    let model2_occupied = model2.values().filter(|(_, c)| *c == &'#').count();
 
     (model1_occupied, model2_occupied)
 }
