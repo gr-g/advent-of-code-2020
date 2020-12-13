@@ -1,34 +1,4 @@
-#[derive(Debug, Copy, Clone)]
-struct Vector {
-    x: i64,
-    y: i64,
-}
-
-impl Vector {
-    fn go(&mut self, dir: &Vector, amount: i64) {
-        self.x += dir.x * amount;
-        self.y += dir.y * amount;
-    }
-
-    fn rotate_left(&mut self) {
-        std::mem::swap(&mut self.x, &mut self.y);
-        self.x = -self.x;
-    }
-
-    fn rotate_right(&mut self) {
-        std::mem::swap(&mut self.x, &mut self.y);
-        self.y = -self.y;
-    }
-
-    fn reverse(&mut self) {
-        self.x = -self.x;
-        self.y = -self.y;
-    }
-
-    fn abs(&self) -> i64 {
-        self.x.abs() + self.y.abs()
-    }
-}
+use advent_of_code_2020::grid::{consts::*, Direction};
 
 fn solve(input: &str) -> (i64, i64) {
     let instructions: Vec<_> = input
@@ -36,46 +6,39 @@ fn solve(input: &str) -> (i64, i64) {
         .map(|s| (&s[0..1], s[1..].parse::<i64>().unwrap()))
         .collect();
 
-    let (north, south, east, west) = (
-        Vector{ x: 0, y: 1 },
-        Vector{ x: 0, y: -1 },
-        Vector{ x: 1, y: 0 },
-        Vector{ x: -1, y: 0 },
-    );
-
-    let mut pos1 = Vector{ x: 0, y: 0 };
-    let mut dir = east;
+    let mut pos1 = ORIGIN;
+    let mut dir = RIGHT;
     for &(c, n) in &instructions {
         match (c, n) {
-            ("N", n) => { pos1.go(&north, n); },
-            ("S", n) => { pos1.go(&south, n); },
-            ("E", n) => { pos1.go(&east, n); },
-            ("W", n) => { pos1.go(&west, n); },
-            ("F", n) => { pos1.go(&dir, n); },
-            ("L", 90) | ("R", 270) => { dir.rotate_left(); },
-            ("L", 180) | ("R", 180) => { dir.reverse(); },
-            ("L", 270) | ("R", 90) => { dir.rotate_right(); },
-            _ => { panic!() },
+            ("N", n) => { pos1 = pos1.go(&UP.times(n)); },
+            ("S", n) => { pos1 = pos1.go(&DOWN.times(n)); },
+            ("E", n) => { pos1 = pos1.go(&RIGHT.times(n)); },
+            ("W", n) => { pos1 = pos1.go(&LEFT.times(n)); },
+            ("L", 90) | ("R", 270) => { dir = dir.rotate_left(); },
+            ("L", 180) | ("R", 180) => { dir = dir.reverse(); },
+            ("L", 270) | ("R", 90) => { dir = dir.rotate_right(); },
+            ("F", n) => { pos1 = pos1.go(&dir.times(n)); },
+            _ => { panic!("unexpected instruction") },
         }
     }
 
-    let mut pos2 = Vector{ x: 0, y: 0 };
-    let mut way = Vector{ x: 10, y: 1 };
+    let mut pos2 = ORIGIN;
+    let mut way = Direction{ dx: 10, dy: -1 };
     for &(c, n) in &instructions {
         match (c, n) {
-            ("N", n) => { way.go(&north, n); },
-            ("S", n) => { way.go(&south, n); },
-            ("E", n) => { way.go(&east, n); },
-            ("W", n) => { way.go(&west, n); },
-            ("F", n) => { pos2.go(&way, n); },
-            ("L", 90) | ("R", 270) => { way.rotate_left(); },
-            ("L", 180) | ("R", 180) => { way.reverse(); },
-            ("L", 270) | ("R", 90) => { way.rotate_right(); },
-            _ => { panic!() },
+            ("N", n) => { way = way.add(&UP.times(n)); },
+            ("S", n) => { way = way.add(&DOWN.times(n)); },
+            ("E", n) => { way = way.add(&RIGHT.times(n)); },
+            ("W", n) => { way = way.add(&LEFT.times(n)); },
+            ("L", 90) | ("R", 270) => { way = way.rotate_left(); },
+            ("L", 180) | ("R", 180) => { way = way.reverse(); },
+            ("L", 270) | ("R", 90) => { way = way.rotate_right(); },
+            ("F", n) => { pos2 = pos2.go(&way.times(n)); },
+            _ => { panic!("unexpected instruction") },
         }
     }
 
-    (pos1.abs(), pos2.abs())
+    (pos1.distance(&ORIGIN), pos2.distance(&ORIGIN))
 }
 
 fn main() {
