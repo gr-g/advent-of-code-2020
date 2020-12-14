@@ -5,7 +5,7 @@ use std::fmt::Write;
 #[derive(Debug)]
 struct AddressRange {
     addr: u64,
-    mask: u64,
+    mask: u64, // follows the IP netmask convention: ones on non-floating bits
 }
 
 impl AddressRange {
@@ -76,8 +76,8 @@ fn solve(input: &str) -> (i64, i64) {
             };
 
             // Before storing the address range, check if it overlaps with other ranges
-            // and compensate by adding a range with the opposite of the value in the
-            // overlapped part.
+            // and compensate by adding a range with the opposite of the value for the
+            // overwritten part.
             let mut memory_overlaps: Vec<_> = memory_ranges
                 .iter()
                 .filter_map(|(a, v)| {
