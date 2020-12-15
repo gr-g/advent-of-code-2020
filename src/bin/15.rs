@@ -1,18 +1,24 @@
-use std::collections::HashMap;
-
 fn play(start: &[usize], turns: usize) -> usize {
-    let mut seen = HashMap::new();
+    // Use a vector as dictionary, storing in position s the last turn
+    // when s was seen (or 0 if never seen). Values stored are limited to
+    // 32 bits for efficiency.
+    // Note that the generation process is such that the values generated
+    // in n turns are less than n.
+    let max_possible_value = std::cmp::max(turns, *start.iter().max().unwrap());
+    let mut last_seen = vec![0; 1+max_possible_value];
+
     let mut turn = 1;
     let mut spoken = start[0];
 
     while turn < start.len() {
-        seen.insert(spoken, turn);
+        last_seen[spoken] = turn as u32;
         turn += 1;
         spoken = start[turn-1];
     }
 
     while turn < turns {
-        let age = turn - seen.insert(spoken, turn).unwrap_or(turn);
+        let age = match last_seen[spoken] { 0 => 0, t => turn - t as usize};
+        last_seen[spoken] = turn as u32;
         turn += 1;
         spoken = age;
         //println!("turn {}: spoken {}", turn, spoken);
@@ -64,41 +70,11 @@ mod tests {
     #[ignore]
     fn example03() {
         assert_eq!(play(&[0, 3, 6], 30000000), 175594);
-    }
-
-    #[test]
-    #[ignore]
-    fn example04() {
         assert_eq!(play(&[1, 3, 2], 30000000), 2578);
-    }
-
-    #[test]
-    #[ignore]
-    fn example05() {
         assert_eq!(play(&[2, 1, 3], 30000000), 3544142);
-    }
-
-    #[test]
-    #[ignore]
-    fn example06() {
         assert_eq!(play(&[1, 2, 3], 30000000), 261214);
-    }
-
-    #[test]
-    #[ignore]
-    fn example07() {
         assert_eq!(play(&[2, 3, 1], 30000000), 6895259);
-    }
-
-    #[test]
-    #[ignore]
-    fn example08() {
         assert_eq!(play(&[3, 2, 1], 30000000), 18);
-    }
-
-    #[test]
-    #[ignore]
-    fn example09() {
         assert_eq!(play(&[3, 1, 2], 30000000), 362);
     }
 }
