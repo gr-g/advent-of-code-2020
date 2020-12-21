@@ -15,10 +15,10 @@ impl Tile {
         Tile{ id: self.id, tile: t }
     }
 
-    fn flip(&self) -> Tile {
-        let mut t = SimpleGrid::new(self.tile.rows(), self.tile.cols());
+    fn transpose(&self) -> Tile {
+        let mut t = SimpleGrid::new(self.tile.cols(), self.tile.rows());
         for ((row, col), v) in self.tile.values() {
-            t.set(row, t.cols()-1-col, *v);
+            t.set(col, row, *v);
         }
         Tile{ id: self.id, tile: t }
     }
@@ -39,64 +39,43 @@ impl Tile {
         (0..self.tile.rows()).map(|row| *self.tile.get(row, self.tile.cols()-1).unwrap()).collect()
     }
 
-    fn has_border(&self, border: &[u8]) -> bool {
-        (0..border.len()).all(|i| self.tile.get(0, i) == Some(&border[i])) ||
-        (0..border.len()).all(|i| self.tile.get(i, 0) == Some(&border[i])) ||
-        (0..border.len()).all(|i| self.tile.get(self.tile.rows()-1, i) == Some(&border[i])) ||
-        (0..border.len()).all(|i| self.tile.get(i, self.tile.cols()-1) == Some(&border[i])) ||
-        (0..border.len()).all(|i| self.tile.get(0, self.tile.cols()-1-i) == Some(&border[i])) ||
-        (0..border.len()).all(|i| self.tile.get(self.tile.rows()-1-i, 0) == Some(&border[i])) ||
-        (0..border.len()).all(|i| self.tile.get(self.tile.rows()-1, self.tile.cols()-1-i) == Some(&border[i])) ||
+    fn matches_border_up(&self, border: &[u8]) -> bool {
+        (0..border.len()).all(|i| self.tile.get(0, i) == Some(&border[i]))
+    }
+
+    fn matches_border_up_rev(&self, border: &[u8]) -> bool {
+        (0..border.len()).all(|i| self.tile.get(0, self.tile.cols()-1-i) == Some(&border[i]))
+    }
+
+    fn matches_border_left(&self, border: &[u8]) -> bool {
+        (0..border.len()).all(|i| self.tile.get(i, 0) == Some(&border[i]))
+    }
+
+    fn matches_border_left_rev(&self, border: &[u8]) -> bool {
+        (0..border.len()).all(|i| self.tile.get(self.tile.rows()-1-i, 0) == Some(&border[i]))
+    }
+
+    fn matches_border_down(&self, border: &[u8]) -> bool {
+        (0..border.len()).all(|i| self.tile.get(self.tile.rows()-1, i) == Some(&border[i]))
+    }
+
+    fn matches_border_down_rev(&self, border: &[u8]) -> bool {
+        (0..border.len()).all(|i| self.tile.get(self.tile.rows()-1, self.tile.cols()-1-i) == Some(&border[i]))
+    }
+
+    fn matches_border_right(&self, border: &[u8]) -> bool {
+        (0..border.len()).all(|i| self.tile.get(i, self.tile.cols()-1) == Some(&border[i]))
+    }
+
+    fn matches_border_right_rev(&self, border: &[u8]) -> bool {
         (0..border.len()).all(|i| self.tile.get(self.tile.rows()-1-i, self.tile.cols()-1) == Some(&border[i]))
     }
 
-    fn attach_right(&self, other: &Tile) -> Tile {
-        assert!(self.tile.rows() == other.tile.rows());
-        let mut t = SimpleGrid::new(self.tile.rows(), self.tile.cols()+other.tile.cols());
-        for ((row, col), v) in self.tile.values() {
-            t.set(row, col, *v);
-        }
-        for ((row, col), v) in other.tile.values() {
-            t.set(row, self.tile.cols()+col, *v);
-        }
-        Tile{ id: self.id, tile: t }
-    }
-
-    fn attach_down(&self, other: &Tile) -> Tile {
-        assert!(self.tile.cols() == other.tile.cols());
-        let mut t = SimpleGrid::new(self.tile.rows()+other.tile.rows(), self.tile.cols());
-        for ((row, col), v) in self.tile.values() {
-            t.set(row, col, *v);
-        }
-        for ((row, col), v) in other.tile.values() {
-            t.set(self.tile.rows()+row, col, *v);
-        }
-        Tile{ id: self.id, tile: t }
-    }
-
-    fn remove_borders(&self, border_len: usize) -> Tile {
-        let new_rows = self.tile.rows() / border_len * (border_len - 2);
-        let new_cols = self.tile.cols() / border_len * (border_len - 2);
-
-        let mut t = SimpleGrid::new(new_rows, new_cols);
-
-        let mut new_row = 0;
-        let mut new_col = 0;
-        for row in 0..self.tile.rows() {
-            if row % border_len == 0 || row % border_len == border_len - 1 {
-                continue;
-            }
-            for col in 0..self.tile.cols() {
-                if col % border_len == 0 || col % border_len == border_len - 1 {
-                    continue;
-                }
-                t.set(new_row, new_col, *self.tile.get(row, col).unwrap());
-                new_col += 1;
-            }
-            new_row += 1;
-            new_col = 0;
-        }
-        Tile{ id: self.id, tile: t }
+    fn matches_border(&self, border: &[u8]) -> bool {
+        self.matches_border_up(border) || self.matches_border_up_rev(border) ||
+        self.matches_border_left(border) || self.matches_border_left_rev(border) ||
+        self.matches_border_down(border) || self.matches_border_down_rev(border) ||
+        self.matches_border_right(border) || self.matches_border_right_rev(border)
     }
 
     fn highlight_pattern(&mut self, offset_row: usize, offset_col: usize, pattern: &SimpleGrid) -> bool {
@@ -119,95 +98,86 @@ impl Tile {
     }
 }
 
-fn remove_tile_with_pattern_up(tiles: &mut Vec<Tile>, pattern: &[u8]) -> Option<Tile> {
+fn remove_tile_with_pattern_left(tiles: &mut Vec<Tile>, pattern: Vec<u8>) -> Option<Tile> {
     for i in 0..tiles.len() {
-        if pattern == tiles[i].border_up().as_slice() {
-            return Some(tiles.remove(i));
+        if tiles[i].matches_border_up(&pattern) {
+            return Some(tiles.remove(i).transpose());
         }
-        if pattern == tiles[i].flip().border_up().as_slice() {
-            return Some(tiles.remove(i).flip());
-        }
-        if pattern == tiles[i].rotate().border_up().as_slice() {
-            return Some(tiles.remove(i).rotate());
-        }
-        if pattern == tiles[i].rotate().flip().border_up().as_slice() {
-            return Some(tiles.remove(i).rotate().flip());
-        }
-        if pattern == tiles[i].rotate().rotate().border_up().as_slice() {
-            return Some(tiles.remove(i).rotate().rotate());
-        }
-        if pattern == tiles[i].rotate().rotate().flip().border_up().as_slice() {
-            return Some(tiles.remove(i).rotate().rotate().flip());
-        }
-        if pattern == tiles[i].rotate().rotate().rotate().border_up().as_slice() {
+        if tiles[i].matches_border_up_rev(&pattern) {
             return Some(tiles.remove(i).rotate().rotate().rotate());
         }
-        if pattern == tiles[i].rotate().rotate().rotate().flip().border_up().as_slice() {
-            return Some(tiles.remove(i).rotate().rotate().rotate().flip());
+        if tiles[i].matches_border_left(&pattern) {
+            return Some(tiles.remove(i));
+        }
+        if tiles[i].matches_border_left_rev(&pattern) {
+            return Some(tiles.remove(i).rotate().transpose());
+        }
+        if tiles[i].matches_border_down(&pattern) {
+            return Some(tiles.remove(i).rotate());
+        }
+        if tiles[i].matches_border_down_rev(&pattern) {
+            return Some(tiles.remove(i).transpose().rotate().rotate());
+        }
+        if tiles[i].matches_border_right(&pattern) {
+            return Some(tiles.remove(i).transpose().rotate());
+        }
+        if tiles[i].matches_border_right_rev(&pattern) {
+            return Some(tiles.remove(i).rotate().rotate());
         }
     }
     None
 }
 
-fn remove_tile_with_pattern_left(tiles: &mut Vec<Tile>, pattern: &[u8]) -> Option<Tile> {
-    for i in 0..tiles.len() {
-        if pattern == tiles[i].border_left().as_slice() {
-            return Some(tiles.remove(i));
-        }
-        if pattern == tiles[i].flip().border_left().as_slice() {
-            return Some(tiles.remove(i).flip());
-        }
-        if pattern == tiles[i].rotate().border_left().as_slice() {
-            return Some(tiles.remove(i).rotate());
-        }
-        if pattern == tiles[i].rotate().flip().border_left().as_slice() {
-            return Some(tiles.remove(i).rotate().flip());
-        }
-        if pattern == tiles[i].rotate().rotate().border_left().as_slice() {
-            return Some(tiles.remove(i).rotate().rotate());
-        }
-        if pattern == tiles[i].rotate().rotate().flip().border_left().as_slice() {
-            return Some(tiles.remove(i).rotate().rotate().flip());
-        }
-        if pattern == tiles[i].rotate().rotate().rotate().border_left().as_slice() {
-            return Some(tiles.remove(i).rotate().rotate().rotate());
-        }
-        if pattern == tiles[i].rotate().rotate().rotate().flip().border_left().as_slice() {
-            return Some(tiles.remove(i).rotate().rotate().rotate().flip());
-        }
-    }
-    None
+fn remove_tile_with_pattern_up(tiles: &mut Vec<Tile>, pattern: Vec<u8>) -> Option<Tile> {
+    remove_tile_with_pattern_left(tiles, pattern).map(|t| t.transpose())
 }
 
 fn find_corners(tiles: &[Tile]) -> Vec<(usize, Vec<u8>)> {
     let mut corner_patterns = Vec::new();
     for i in 0..tiles.len() {
-        // Check which of the four borders appear in other tiles
+        // Check whether the four borders appear in other tiles
         let is_shared_border = [
-            (0..tiles.len()).any(|j| j != i && tiles[j].has_border(&tiles[i].border_up())),
-            (0..tiles.len()).any(|j| j != i && tiles[j].has_border(&tiles[i].border_left())),
-            (0..tiles.len()).any(|j| j != i && tiles[j].has_border(&tiles[i].border_down())),
-            (0..tiles.len()).any(|j| j != i && tiles[j].has_border(&tiles[i].border_right())),
+            (0..tiles.len()).any(|j| j != i && tiles[j].matches_border(&tiles[i].border_up())),
+            (0..tiles.len()).any(|j| j != i && tiles[j].matches_border(&tiles[i].border_left())),
+            (0..tiles.len()).any(|j| j != i && tiles[j].matches_border(&tiles[i].border_down())),
+            (0..tiles.len()).any(|j| j != i && tiles[j].matches_border(&tiles[i].border_right())),
         ];
 
         if !is_shared_border[0] && !is_shared_border[1] {
-            //println!("tile {} is a corner", tiles[i].id);
             corner_patterns.push((tiles[i].id, tiles[i].border_up()));
         }
         if !is_shared_border[1] && !is_shared_border[2] {
-            //println!("tile {} is a corner", tiles[i].id);
             corner_patterns.push((tiles[i].id, tiles[i].rotate().border_up()));
         }
         if !is_shared_border[2] && !is_shared_border[3] {
-            //println!("tile {} is a corner", tiles[i].id);
             corner_patterns.push((tiles[i].id, tiles[i].rotate().rotate().border_up()));
         }
         if !is_shared_border[3] && !is_shared_border[0] {
-            //println!("tile {} is a corner", tiles[i].id);
             corner_patterns.push((tiles[i].id, tiles[i].rotate().rotate().rotate().border_up()));
         }
     }
     corner_patterns
+}
+
+fn compose_image(tiles: Vec<Vec<Tile>>) -> SimpleGrid {
+    let tile_rows = tiles[0][0].tile.rows();
+    let tile_cols = tiles[0][0].tile.cols();
+    let rows = tiles.len() * (tile_rows - 2);
+    let cols = tiles[0].len() * (tile_cols - 2);
+
+    let mut image = SimpleGrid::new(rows, cols);
+    for tr in 0..tiles.len() {
+        for tc in 0..tiles[tr].len() {
+            for r in 1..tile_rows - 1 {
+                for c in 1..tile_cols - 1 {
+                    let new_r = tr * (tile_rows - 2) + r - 1;
+                    let new_c = tc * (tile_cols - 2) + c - 1;
+                    image.set(new_r, new_c, *tiles[tr][tc].tile.get(r, c).unwrap());
+                }
+            }
+        }
+    }
+    image
 }
 
 fn solve(input: &str) -> (usize, usize) {
@@ -222,51 +192,46 @@ fn solve(input: &str) -> (usize, usize) {
         tiles.push(Tile{ id, tile });
     }
 
+    let n_tiles = tiles.len();
+
     let corner_patterns = find_corners(&tiles);
     assert_eq!(corner_patterns.len(), 4, "failed to find conrner tiles");
 
     let corner_product = corner_patterns.iter().map(|(id, _)| id).product();
 
-    // Choose a pattern as reference to be the top-left corner
+    // Choose a pattern as reference to be the top border on the top-left corner
     let mut pattern = corner_patterns[0].1.clone();
 
-    let mut image_rows = Vec::new();
+    let mut arranged_tiles = Vec::new();
 
-    while let Some(mut image_row) = remove_tile_with_pattern_up(&mut tiles, &pattern) {
-        pattern = image_row.border_right();
+    while let Some(tile) = remove_tile_with_pattern_up(&mut tiles, pattern) {
+        pattern = tile.border_right();
+        let mut image_row = vec![tile];
 
-        while let Some(tile) = remove_tile_with_pattern_left(&mut tiles, &pattern) {
-            image_row = image_row.attach_right(&tile);
-            pattern = image_row.border_right();
+        while let Some(tile) = remove_tile_with_pattern_left(&mut tiles, pattern) {
+            pattern = tile.border_right();
+            image_row.push(tile);
         }
 
-        pattern = image_row.border_down();
-        pattern.truncate(10);
+        assert_eq!(image_row.len() * image_row.len(), n_tiles, "failed to reconstruct image");
 
-        //println!("image row:\n{}", image_row.tile);
-        image_rows.push(image_row);
-        //println!("tiles left: {}", tiles.len());
+        pattern = image_row[0].border_down();
+        arranged_tiles.push(image_row);
     }
 
     assert!(tiles.is_empty(), "failed to reconstruct image");
 
-    let mut image = image_rows.remove(0);
-    for i in image_rows {
-        image = image.attach_down(&i);
-    }
-    //println!("{}", image.tile);
-
-    image = image.remove_borders(10);
+    let image = Tile{ id: 0, tile: compose_image(arranged_tiles) };
 
     let all_images = vec![
         image.clone(),
-        image.flip(),
         image.rotate(),
-        image.rotate().flip(),
         image.rotate().rotate(),
-        image.rotate().rotate().flip(),
         image.rotate().rotate().rotate(),
-        image.rotate().rotate().rotate().flip(),
+        image.transpose(),
+        image.transpose().rotate(),
+        image.transpose().rotate().rotate(),
+        image.transpose().rotate().rotate().rotate(),
     ];
 
     let monster = SimpleGrid::create_from("\
