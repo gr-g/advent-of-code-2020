@@ -29,9 +29,10 @@ impl Food {
 fn solve(input: &str) -> (usize, String) {
     let food: Vec<_> = input.lines().map(|line| Food::create_from(line)).collect();
 
+    // Store a map between an allergen and the ingredients that may hold it.
     let mut potentially_dangerous: HashMap<String, HashSet<String>> = HashMap::new();
 
-    // The ingredient associated to a certain allergen must appear in all
+    // The ingredient associated with a certain allergen must appear in all
     // the food items with that allergen.
     for Food{ ingredients, allergens } in &food {
         for a in allergens {
