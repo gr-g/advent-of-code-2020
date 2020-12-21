@@ -167,7 +167,7 @@ impl FixedGrid {
         let mut rows = 0;
         let mut data = Vec::new();
 
-        for line in s.trim().split('\n') {
+        for line in s.lines() {
             rows += 1;
             data.extend_from_slice(line.as_bytes());
             assert_eq!(data.len(), rows*cols, "input lines have different lengths");
