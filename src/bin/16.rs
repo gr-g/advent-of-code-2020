@@ -101,7 +101,7 @@ fn assign_fields(fields: &mut [TicketField], tickets: &[Vec<u64>]) {
     }
 
     if !possible_positions.iter().all(|list| list.is_empty()) {
-        panic!("the simple algorithm could not solve the problem!");
+        panic!("the problem does not have a unique solution");
     }
 
     // Sort fields by position.
