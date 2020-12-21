@@ -1,4 +1,4 @@
-use advent_of_code_2020::grid::Grid;
+use advent_of_code_2020::simplegrid::SimpleGrid;
 use std::collections::HashMap;
 use std::collections::HashSet;
 
@@ -8,10 +8,10 @@ struct ActiveCubes(HashSet<(i64, i64, i64, i64)>);
 impl ActiveCubes {
     fn create_from(s: &str) -> ActiveCubes {
         let mut cubes = HashSet::new();
-        let g = Grid::create_from(s);
-        for (l, c) in g.values() {
-            if c == &'#' {
-                cubes.insert((l.x, l.y, 0, 0));
+        let g = SimpleGrid::create_from(s);
+        for ((row, col), c) in g.values() {
+            if c == &b'#' {
+                cubes.insert((col as i64, row as i64, 0, 0));
             }
         }
         ActiveCubes(cubes)

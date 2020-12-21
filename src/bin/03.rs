@@ -1,10 +1,10 @@
-use advent_of_code_2020::grid::{FixedGrid, Location};
+use advent_of_code_2020::simplegrid::SimpleGrid;
 
-fn trees_on_slope( grid: &FixedGrid, slope_x: i64, slope_y: i64 ) -> i64 {
-    let cols = grid.cols() as i64;
+fn trees_on_slope( grid: &SimpleGrid, slope_x: usize, slope_y: usize ) -> usize {
+    let cols = grid.cols();
     let (mut x, mut y) = (slope_x, slope_y);
     let mut count = 0;
-    while let Some(c) = grid.get(&Location{ x, y }) {
+    while let Some(c) = grid.get(y, x) {
         if c == &b'#' { count += 1; }
         x = (x + slope_x) % cols;
         y = y + slope_y;
@@ -12,8 +12,8 @@ fn trees_on_slope( grid: &FixedGrid, slope_x: i64, slope_y: i64 ) -> i64 {
     count
 }
 
-fn solve(input: &str) -> (i64, i64) {
-    let g = FixedGrid::create_from(input);
+fn solve(input: &str) -> (usize, usize) {
+    let g = SimpleGrid::create_from(input);
 
     let count_1_1 = trees_on_slope(&g, 1, 1);
     let count_3_1 = trees_on_slope(&g, 3, 1);
