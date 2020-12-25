@@ -1,7 +1,7 @@
 fn solve(input: &str) -> (usize, usize) {
     let groups: Vec<_> = input.split("\n\n").collect();
 
-    // for each group, record the size and the frequency of "yes" answers
+    // for each group, record the size of the group and the frequency of "yes" answers
     let yes_answers_by_group: Vec<_> = groups
         .iter()
         .map(|group| {

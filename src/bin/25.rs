@@ -1,5 +1,7 @@
 const P: u64 = 20201227;
 
+// Compute the power of an element in Z_P using an
+// "exponentiation by squaring" approach.
 fn pow_p(base: u64, exp: u64) -> u64 {
     if exp == 0 {
         1
@@ -12,6 +14,7 @@ fn pow_p(base: u64, exp: u64) -> u64 {
     }
 }
 
+// Compute the logarithm of an element in Z_P by brute force search.
 fn log_p(base: u64, value: u64) -> Option<u64> {
     let mut v = 1;
     for exp in 0..P {

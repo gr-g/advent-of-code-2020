@@ -6,6 +6,10 @@ fn coordinates(directions: &str) -> (i64, i64) {
     let mut y = 0;
     let mut chars = directions.chars();
     while let Some(c) = chars.next() {
+        // Map the six directions to three vectors (v1, v2, v3) and their
+        // opposites (-v1, -v2, -v3). The mapping is arbitrary: any mapping
+        // is suitable provided that v1, v2, v3 are chosen so that
+        // v1 + v2 + v3 = 0.
         match c {
             'e' => { x += 2; },
             'w' => { x -= 2; },

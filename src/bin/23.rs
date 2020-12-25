@@ -38,7 +38,7 @@ impl Cups {
                 dest = (dest + n - 1) % n;
             }
 
-            // reattach the 3 elements after the destination cup
+            // reattach the 3 cups after the destination cup
             let cd = self.next[dest];
             self.next[dest] = c1;
             self.next[c3] = cd;
