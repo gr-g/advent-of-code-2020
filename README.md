@@ -7,6 +7,6 @@ The goals for these solutions are the same as in the previous year: to be self-c
 
 The inputs are expected in the [input](./input/) folder.
 
-Run any of the solutions with `cargo run --release --bin DAY_NUMBER`.
+Run any of the solutions with `cargo run --release --bin DAY_NUMBER`, or run all with `./run_all.sh`.
 
 Run the tests with `cargo test`.
