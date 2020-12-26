@@ -1,16 +1,16 @@
-use std::collections::HashMap;
 use std::fmt::Display;
 
 pub mod consts {
-    pub const ORIGIN: super::Location = super::Location{ x: 0, y: 0 };
-    pub const UP: super::Direction = super::Direction{ dx: 0, dy: -1 };
-    pub const DOWN: super::Direction = super::Direction{ dx: 0, dy: 1 };
-    pub const LEFT: super::Direction = super::Direction{ dx: -1, dy: 0 };
-    pub const RIGHT: super::Direction = super::Direction{ dx: 1, dy: 0 };
-    pub const UP_LEFT: super::Direction = super::Direction{ dx: -1, dy: -1 };
-    pub const UP_RIGHT: super::Direction = super::Direction{ dx: 1, dy: -1 };
-    pub const DOWN_LEFT: super::Direction = super::Direction{ dx: -1, dy: 1 };
-    pub const DOWN_RIGHT: super::Direction = super::Direction{ dx: 1, dy: 1 };
+    use super::{Location, Direction};
+    pub const ORIGIN: Location = Location{ x: 0, y: 0 };
+    pub const UP: Direction = Direction{ dx: 0, dy: -1 };
+    pub const DOWN: Direction = Direction{ dx: 0, dy: 1 };
+    pub const LEFT: Direction = Direction{ dx: -1, dy: 0 };
+    pub const RIGHT: Direction = Direction{ dx: 1, dy: 0 };
+    pub const UP_LEFT: Direction = Direction{ dx: -1, dy: -1 };
+    pub const UP_RIGHT: Direction = Direction{ dx: 1, dy: -1 };
+    pub const DOWN_LEFT: Direction = Direction{ dx: -1, dy: 1 };
+    pub const DOWN_RIGHT: Direction = Direction{ dx: 1, dy: 1 };
 }
 
 #[derive(Clone, Copy, Debug, Hash, PartialOrd, Ord, PartialEq, Eq)]
@@ -69,103 +69,44 @@ impl Direction {
     }
 }
 
-#[derive(Default)]
-pub struct Grid {
-    symbols: HashMap<Location, char>,
+// A trait for 2-dimensional maps with cells at integer coordinates,
+// where each cell contains a char.
+pub trait Grid {
+    fn x_min(&self) -> i64;
+
+    fn x_max(&self) -> i64;
+
+    fn y_min(&self) -> i64;
+
+    fn y_max(&self) -> i64;
+
+    fn get(&self, l: &Location) -> Option<char>;
+
+    fn insert(&mut self, l: Location, c: char) -> Option<char>;
+
+    fn remove(&mut self, l: &Location) -> Option<char>;
+
+    fn cells(&self) -> Box<dyn Iterator<Item = (Location, char)> + '_>;
 }
 
-impl Grid {
-    pub fn new() -> Grid {
-        Grid { symbols: HashMap::new() }
-    }
-    pub fn create_from(s: &str) -> Grid {
-        let mut symbols = HashMap::new();
-        let mut x = 0;
-        let mut y = 0;
-        for c in s.chars() {
-            match c {
-                '\n' => { y += 1; x = 0; },
-                c => {
-                    if !c.is_ascii_whitespace() {
-                        symbols.insert(Location { x, y }, c);
-                    }
-                    x += 1;
-                }
-            }
-        }
-        Grid { symbols }
-    }
-
-    pub fn x_min( &self ) -> i64 {
-        *self.symbols.keys().map(|Location { x, .. }| x).min().unwrap_or(&0)
-    }
-
-    pub fn x_max( &self ) -> i64 {
-        *self.symbols.keys().map(|Location { x, .. }| x).max().unwrap_or(&0)
-    }
-
-    pub fn y_min( &self ) -> i64 {
-        *self.symbols.keys().map(|Location { y, .. }| y).min().unwrap_or(&0)
-    }
-
-    pub fn y_max( &self ) -> i64 {
-        *self.symbols.keys().map(|Location { y, .. }| y).max().unwrap_or(&0)
-    }
-
-    pub fn get(&self, l: &Location) -> Option<&char> {
-        self.symbols.get(l)
-    }
-
-    pub fn insert(&mut self, l: Location, c: char) -> Option<char> {
-        self.symbols.insert(l, c)
-    }
-
-    pub fn remove(&mut self, l: &Location) -> Option<char> {
-        self.symbols.remove(l)
-    }
-
-    pub fn find( &self, c: char ) -> Option<&Location> {
-        self.symbols.iter().find(|(_, sym)| **sym == c ).map(|(loc, _)| loc)
-    }
-
-    pub fn values(&self) -> impl Iterator<Item = (Location, &char)> {
-        self.symbols.iter().map(|(l, c)| (*l, c))
-    }
-
-    pub fn values_mut(&mut self) -> impl Iterator<Item = (Location, &mut char)> {
-        self.symbols.iter_mut().map(|(l, c)| (*l, c))
-    }
-}
-
-impl Display for Grid {
-    fn fmt(&self, f: &mut std::fmt::Formatter) -> std::fmt::Result {
-        let x0 = self.x_min();
-        let x1 = self.x_max();
-        let y0 = self.y_min();
-        let y1 = self.y_max();
-
-        for y in y0..=y1 {
-            for x in x0..=x1 {
-                write!(f, "{}", self.get(&Location { x, y }).unwrap_or(&' '))?;
-            }
-            writeln!(f)?;
-        }
-        Ok(())
-    }
-}
-
-#[derive(Default)]
-pub struct FixedGrid {
+// A grid of ascii characters with fixed size. Cells are considered filled
+// if they contain ascii graphic characters, otherwise they are considered empty.
+#[derive(Clone, Debug)]
+pub struct SimpleGrid {
     rows: usize,
     cols: usize,
     data: Vec<u8>,
 }
 
-impl FixedGrid {
-    pub fn create_from(s: &str) -> FixedGrid {
+impl SimpleGrid {
+    pub fn new(rows: usize, cols: usize) -> SimpleGrid {
+        SimpleGrid{ rows, cols, data: vec![0; rows*cols] }
+    }
+
+    pub fn create_from(s: &str) -> SimpleGrid {
         let cols = s.find('\n').unwrap();
         let mut rows = 0;
-        let mut data = Vec::new();
+        let mut data = Vec::with_capacity(s.len());
 
         for line in s.lines() {
             rows += 1;
@@ -173,15 +114,7 @@ impl FixedGrid {
             assert_eq!(data.len(), rows*cols, "input lines have different lengths");
         }
 
-        FixedGrid{ rows, cols, data }
-    }
-
-    pub fn location_to_index(&self, l: &Location) -> usize {
-        l.y as usize * self.cols + l.x as usize
-    }
-
-    pub fn index_to_location(&self, i: usize) -> Location {
-        Location{ x: (i % self.cols) as i64, y: (i / self.cols) as i64 }
+        SimpleGrid{ rows, cols, data }
     }
 
     pub fn rows(&self) -> usize {
@@ -192,27 +125,78 @@ impl FixedGrid {
         self.cols
     }
 
-    pub fn data(&self) -> &Vec<u8> {
-        &self.data
+    pub fn get_rc(&self, row: usize, col: usize) -> Option<&u8> {
+        self.data.get(row * self.cols + col).filter(|c| c.is_ascii_graphic())
     }
 
-    pub fn get(&self, l: &Location) -> Option<&u8> {
-        if l.x < 0 || l.x as usize >= self.cols { return None; }
-        if l.y < 0 || l.y as usize >= self.rows { return None; }
-
-        self.data.get(self.location_to_index(l))
+    pub fn set_rc(&mut self, row: usize, col: usize, v: u8) {
+        self.data[row * self.cols + col] = v;
     }
 
-    pub fn set(&mut self, i: usize, c: u8) {
-        self.data[i] = c;
+    pub fn cells_rc(&self) -> impl Iterator<Item = ((usize, usize), &u8)> {
+        (0..self.rows).flat_map(move |row| {
+            (0..self.cols).filter_map(move |col| {
+                self.data.get(row * self.cols + col).map(|c| ((row, col), c))
+            })
+        })
     }
 }
 
-impl Display for FixedGrid {
+impl Grid for SimpleGrid {
+    fn x_min(&self) -> i64 {
+        0
+    }
+
+    fn x_max(&self) -> i64 {
+        self.cols as i64 - 1
+    }
+
+    fn y_min(&self) -> i64 {
+        0
+    }
+
+    fn y_max(&self) -> i64 {
+        self.rows as i64 - 1
+    }
+
+    fn get(&self, l: &Location) -> Option<char> {
+        if l.x >= 0 && (l.x as usize) < self.cols && l.y >= 0 && (l.y as usize) < self.rows {
+            self.get_rc(l.y as usize, l.x as usize).map(|v| *v as char)
+        } else {
+            None
+        }
+    }
+
+    fn insert(&mut self, l: Location, c: char) -> Option<char> {
+        assert!(l.x >= 0 && (l.x as usize) < self.cols && l.y >= 0 && (l.y as usize) < self.rows);
+        assert!(c.is_ascii_graphic());
+        let prev = self.get(&l);
+        self.set_rc(l.y as usize, l.x as usize, c as u8);
+        prev
+    }
+
+    fn remove(&mut self, l: &Location) -> Option<char> {
+        if l.x >= 0 && (l.x as usize) < self.cols && l.y >= 0 && (l.y as usize) < self.rows {
+            let prev = self.get(&l);
+            self.set_rc(l.y as usize, l.x as usize, 0);
+            prev
+        } else {
+            None
+        }
+    }
+
+    fn cells(&self) -> Box<dyn Iterator<Item = (Location, char)> + '_> {
+        Box::new(self.cells_rc().map(|((row, col), c)| {
+            (Location{ x: col as i64, y: row as i64 }, *c as char)
+        }))
+    }
+}
+
+impl Display for SimpleGrid {
     fn fmt(&self, f: &mut std::fmt::Formatter) -> std::fmt::Result {
-        for y in 0..self.rows {
-            for x in 0..self.cols {
-                write!(f, "{}", self.data[y * self.cols + x] as char)?;
+        for row in 0..self.rows {
+            for col in 0..self.cols {
+                write!(f, "{}", *self.get_rc(row, col).unwrap_or(&b' ') as char)?;
             }
             writeln!(f)?;
         }

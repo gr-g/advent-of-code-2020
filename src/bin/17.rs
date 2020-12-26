@@ -1,4 +1,4 @@
-use advent_of_code_2020::simplegrid::SimpleGrid;
+use advent_of_code_2020::grid::SimpleGrid;
 use std::collections::HashMap;
 use std::collections::HashSet;
 
@@ -9,7 +9,7 @@ impl ActiveCubes {
     fn create_from(s: &str) -> ActiveCubes {
         let mut cubes = HashSet::new();
         let g = SimpleGrid::create_from(s);
-        for ((row, col), c) in g.values() {
+        for ((row, col), c) in g.cells_rc() {
             if c == &b'#' {
                 cubes.insert((col as i64, row as i64, 0, 0));
             }
@@ -17,6 +17,7 @@ impl ActiveCubes {
         ActiveCubes(cubes)
     }
 
+    #[allow(dead_code)]
     fn to_string(&self) -> String {
         let x_min = *self.0.iter().map(|(x, _, _, _)| x).min().unwrap();
         let x_max = *self.0.iter().map(|(x, _, _, _)| x).max().unwrap();
@@ -87,7 +88,6 @@ impl ActiveCubes {
 
 fn solve(input: &str) -> (usize, usize) {
     let mut cubes3d = ActiveCubes::create_from(input);
-    println!("{}", cubes3d.to_string());
     for _ in 0..6 {
         cubes3d.advance(1, 1, 1, 0);
     }

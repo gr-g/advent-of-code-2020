@@ -1,69 +1,83 @@
-use advent_of_code_2020::grid::{consts::*, FixedGrid, Direction};
+use advent_of_code_2020::grid::{consts::*, Direction, Grid, SimpleGrid};
 
 const DIRECTIONS: [Direction; 8] = [UP, DOWN, LEFT, RIGHT, UP_LEFT, UP_RIGHT, DOWN_LEFT, DOWN_RIGHT];
 
-fn adjacency_map(grid: &FixedGrid) -> Vec<Vec<usize>> {
-    let mut adjacency_map = vec![vec![]; grid.data().len()];
-    for i in 0..grid.data().len() {
-        let pos = grid.index_to_location(i);
+#[derive(Clone, Copy, Debug, PartialEq)]
+enum State { Floor, EmptySeat, OccupiedSeat }
+
+// Returns the seats as a vector v together with an adjacency map m:
+// v[i] is the state of position i and m[i] is the list of seats adjacent to i.
+fn adjacency_map(grid: &SimpleGrid) -> (Vec<State>, Vec<Vec<usize>>) {
+    let mut seats = vec![State::Floor; grid.rows()*grid.cols()];
+    let mut adjacency_map = vec![vec![]; grid.rows()*grid.cols()];
+    for (pos, c) in grid.cells() {
+        let i = pos.y as usize * grid.cols() + pos.x as usize;
+        match c {
+            '#' => { seats[i] = State::OccupiedSeat; },
+            'L' => { seats[i] = State::EmptySeat; },
+            _ => { continue; },
+        }
         for d in &DIRECTIONS {
-            let dp = pos.go(d);
-            match grid.get(&dp) {
-                Some(&b'L') | Some(&b'#') => {
-                    adjacency_map[i].push(grid.location_to_index(&dp));
+            let dpos = pos.go(d);
+            match grid.get(&dpos) {
+                Some('L') | Some('#') => {
+                    adjacency_map[i].push(dpos.y as usize * grid.cols() + dpos.x as usize);
                 },
                 _ => {},
             }
         }
     }
-    adjacency_map
+    (seats, adjacency_map)
 }
 
-fn visibility_map(grid: &FixedGrid) -> Vec<Vec<usize>> {
-    let mut visibility_map = vec![vec![]; grid.data().len()];
-    for i in 0..grid.data().len() {
-        let pos = grid.index_to_location(i);
+// Returns the seats as a vector v together with a 'visibility' map m:
+// v[i] is the state of position i and m[i] is the list of seats adjacent to i.
+fn visibility_map(grid: &SimpleGrid) -> (Vec<State>, Vec<Vec<usize>>) {
+    let mut seats = vec![State::Floor; grid.rows()*grid.cols()];
+    let mut visibility_map = vec![vec![]; grid.rows()*grid.cols()];
+    for (pos, c) in grid.cells() {
+        let i = pos.y as usize * grid.cols() + pos.x as usize;
+        match c {
+            '#' => { seats[i] = State::OccupiedSeat; },
+            'L' => { seats[i] = State::EmptySeat; },
+            _ => { continue; },
+        }
         for d in &DIRECTIONS {
-            let dp = pos.go_until(d, |p| grid.get(p) != Some(&b'.')).unwrap();
-            match grid.get(&dp) {
-                Some(&b'L') | Some(&b'#') => {
-                    visibility_map[i].push(grid.location_to_index(&dp));
+            let dpos = pos.go_until(d, |p| grid.get(p) != Some('.')).unwrap();
+            match grid.get(&dpos) {
+                Some('L') | Some('#') => {
+                    visibility_map[i].push(dpos.y as usize * grid.cols() + dpos.x as usize);
                 },
                 _ => {},
             }
         }
     }
-    visibility_map
+    (seats, visibility_map)
 }
 
-fn count_occupied( data: &[u8], neighbors: &[usize] ) -> usize {
+fn count_occupied(seats: &[State], neighbors: &[usize]) -> usize {
     neighbors
         .iter()
-        .filter(|i| data.get(**i) == Some(&b'#'))
+        .filter(|i| seats[**i] == State::OccupiedSeat)
         .count()
 }
 
-fn run_simulation(grid: &mut FixedGrid, neighbor_map: &[Vec<usize>], threshold: usize) {
-    let mut to_be_checked = vec![true; grid.data().len()];
+fn run_simulation(seats: &mut [State], neighbor_map: &[Vec<usize>], threshold: usize) {
+    let mut to_be_checked: Vec<_> = seats.iter().map(|s| *s != State::Floor).collect();
     let mut to_be_changed = Vec::new();
 
     loop {
         // check seats and mark them as "to be changed"
-        let data = grid.data();
-        for i in 0..data.len() {
+        for i in 0..seats.len() {
             if !to_be_checked[i] { continue; }
-            match data.get(i) {
-                Some(b'L') => {
-                    if count_occupied(data, &neighbor_map[i]) == 0 {
-                        to_be_changed.push((i, b'#'));
-                    }
-                },
-                Some(b'#') => {
-                    if count_occupied(data, &neighbor_map[i]) >= threshold {
-                        to_be_changed.push((i, b'L'));
-                    }
-                },
-                _ => {},
+            if seats[i] == State::OccupiedSeat {
+                if count_occupied(&seats, &neighbor_map[i]) >= threshold {
+                    to_be_changed.push((i, State::EmptySeat));
+                }
+            } else if seats[i] == State::EmptySeat {
+                if count_occupied(&seats, &neighbor_map[i]) == 0 {
+                    to_be_changed.push((i, State::OccupiedSeat));
+                }
             }
             to_be_checked[i] = false;
         }
@@ -72,33 +86,29 @@ fn run_simulation(grid: &mut FixedGrid, neighbor_map: &[Vec<usize>], threshold: 
 
         // update seats and mark neighbors as "to be checked"
         for (i, c) in to_be_changed.drain(..) {
-            grid.set(i, c);
+            seats[i] = c;
 
-            for &ni in &neighbor_map[i] {
-                to_be_checked[ni] = true;
+            for ni in &neighbor_map[i] {
+                to_be_checked[*ni] = true;
             }
         }
     }
 }
 
 fn solve(input: &str) -> (usize, usize) {
-    let mut grid1 = FixedGrid::create_from(input);
+    let grid = SimpleGrid::create_from(input);
 
-    // prepare the map with the neighbours of each seat
-    // based on the adjacency rules and run the simulation
-    let adjacency_map = adjacency_map(&grid1);
-    run_simulation(&mut grid1, &adjacency_map, 4);
-    let occupied1 = grid1.data().iter().filter(|c| *c == &b'#').count();
+    // prepare and run the simulation using the adjacency rules
+    let (mut seats, adjacency_map) = adjacency_map(&grid);
+    run_simulation(&mut seats, &adjacency_map, 4);
+    let occupied_adj = seats.iter().filter(|s| **s == State::OccupiedSeat).count();
 
-    let mut grid2 = FixedGrid::create_from(input);
+    // prepare and run the simulation using the visibility rules
+    let (mut seats, visibility_map) = visibility_map(&grid);
+    run_simulation(&mut seats, &visibility_map, 5);
+    let occupied_vis = seats.iter().filter(|s| **s == State::OccupiedSeat).count();
 
-    // prepare the map with the neighbours of each seat
-    // based on the visibility rules and run the simulation
-    let visibility_map = visibility_map(&grid2);
-    run_simulation(&mut grid2, &visibility_map, 5);
-    let occupied2 = grid2.data().iter().filter(|c| *c == &b'#').count();
-
-    (occupied1, occupied2)
+    (occupied_adj, occupied_vis)
 }
 
 fn main() {
@@ -112,11 +122,10 @@ fn main() {
 #[cfg(test)]
 mod tests {
     use super::*;
-    use advent_of_code_2020::grid::Location;
 
     #[test]
     fn example01() {
-        let g = FixedGrid::create_from("\
+        let g = SimpleGrid::create_from("\
 .......#.
 ...#.....
 .#.......
@@ -126,27 +135,27 @@ mod tests {
 .........
 #........
 ...#.....");
-        let visibility_map = visibility_map(&g);
-        let neighbors = &visibility_map[g.location_to_index(&Location{ x: 3, y: 4 })];
-        assert_eq!(count_occupied(g.data(), neighbors), 8);
+        let (seats, visibility_map) = visibility_map(&g);
+        let neighbors = &visibility_map[4 * g.cols() + 3];
+        assert_eq!(count_occupied(&seats, neighbors), 8);
     }
 
     #[test]
     fn example02() {
-        let g = FixedGrid::create_from("\
+        let g = SimpleGrid::create_from("\
 .............
 .L.L.#.#.#.#.
 .............");
-        let visibility_map = visibility_map(&g);
-        let neighbors = &visibility_map[g.location_to_index(&Location{ x: 1, y: 1 })];
-        assert_eq!(count_occupied(g.data(), neighbors), 0);
-        let neighbors = &visibility_map[g.location_to_index(&Location{ x: 3, y: 1 })];
-        assert_eq!(count_occupied(g.data(), neighbors), 1);
+        let (seats, visibility_map) = visibility_map(&g);
+        let neighbors = &visibility_map[1 * g.cols() + 1];
+        assert_eq!(count_occupied(&seats, neighbors), 0);
+        let neighbors = &visibility_map[1 * g.cols() + 3];
+        assert_eq!(count_occupied(&seats, neighbors), 1);
     }
 
     #[test]
     fn example03() {
-        let g = FixedGrid::create_from("\
+        let g = SimpleGrid::create_from("\
 .##.##.
 #.#.#.#
 ##...##
@@ -154,9 +163,9 @@ mod tests {
 ##...##
 #.#.#.#
 .##.##.");
-        let visibility_map = visibility_map(&g);
-        let neighbors = &visibility_map[g.location_to_index(&Location{ x: 3, y: 3 })];
-        assert_eq!(count_occupied(g.data(), neighbors), 0);
+        let (seats, visibility_map) = visibility_map(&g);
+        let neighbors = &visibility_map[3 * g.cols() + 3];
+        assert_eq!(count_occupied(&seats, neighbors), 0);
     }
 
     #[test]

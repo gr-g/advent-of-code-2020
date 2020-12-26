@@ -1,4 +1,4 @@
-use advent_of_code_2020::simplegrid::SimpleGrid;
+use advent_of_code_2020::grid::SimpleGrid;
 
 #[derive(Clone, Debug)]
 struct Tile {
@@ -9,66 +9,66 @@ struct Tile {
 impl Tile {
     fn rotate(&self) -> Tile {
         let mut t = SimpleGrid::new(self.tile.cols(), self.tile.rows());
-        for ((row, col), v) in self.tile.values() {
-            t.set(col, t.cols()-1-row, *v);
+        for ((row, col), v) in self.tile.cells_rc() {
+            t.set_rc(col, t.cols()-1-row, *v);
         }
         Tile{ id: self.id, tile: t }
     }
 
     fn transpose(&self) -> Tile {
         let mut t = SimpleGrid::new(self.tile.cols(), self.tile.rows());
-        for ((row, col), v) in self.tile.values() {
-            t.set(col, row, *v);
+        for ((row, col), v) in self.tile.cells_rc() {
+            t.set_rc(col, row, *v);
         }
         Tile{ id: self.id, tile: t }
     }
 
     fn border_up(&self) -> Vec<u8> {
-        (0..self.tile.cols()).map(|col| *self.tile.get(0, col).unwrap()).collect()
+        (0..self.tile.cols()).map(|col| *self.tile.get_rc(0, col).unwrap()).collect()
     }
 
     fn border_left(&self) -> Vec<u8> {
-        (0..self.tile.rows()).map(|row| *self.tile.get(row, 0).unwrap()).collect()
+        (0..self.tile.rows()).map(|row| *self.tile.get_rc(row, 0).unwrap()).collect()
     }
 
     fn border_down(&self) -> Vec<u8> {
-        (0..self.tile.cols()).map(|col| *self.tile.get(self.tile.rows()-1, col).unwrap()).collect()
+        (0..self.tile.cols()).map(|col| *self.tile.get_rc(self.tile.rows()-1, col).unwrap()).collect()
     }
 
     fn border_right(&self) -> Vec<u8> {
-        (0..self.tile.rows()).map(|row| *self.tile.get(row, self.tile.cols()-1).unwrap()).collect()
+        (0..self.tile.rows()).map(|row| *self.tile.get_rc(row, self.tile.cols()-1).unwrap()).collect()
     }
 
     fn matches_border_up(&self, border: &[u8]) -> bool {
-        (0..border.len()).all(|i| self.tile.get(0, i) == Some(&border[i]))
+        (0..border.len()).all(|i| self.tile.get_rc(0, i) == Some(&border[i]))
     }
 
     fn matches_border_up_rev(&self, border: &[u8]) -> bool {
-        (0..border.len()).all(|i| self.tile.get(0, self.tile.cols()-1-i) == Some(&border[i]))
+        (0..border.len()).all(|i| self.tile.get_rc(0, self.tile.cols()-1-i) == Some(&border[i]))
     }
 
     fn matches_border_left(&self, border: &[u8]) -> bool {
-        (0..border.len()).all(|i| self.tile.get(i, 0) == Some(&border[i]))
+        (0..border.len()).all(|i| self.tile.get_rc(i, 0) == Some(&border[i]))
     }
 
     fn matches_border_left_rev(&self, border: &[u8]) -> bool {
-        (0..border.len()).all(|i| self.tile.get(self.tile.rows()-1-i, 0) == Some(&border[i]))
+        (0..border.len()).all(|i| self.tile.get_rc(self.tile.rows()-1-i, 0) == Some(&border[i]))
     }
 
     fn matches_border_down(&self, border: &[u8]) -> bool {
-        (0..border.len()).all(|i| self.tile.get(self.tile.rows()-1, i) == Some(&border[i]))
+        (0..border.len()).all(|i| self.tile.get_rc(self.tile.rows()-1, i) == Some(&border[i]))
     }
 
     fn matches_border_down_rev(&self, border: &[u8]) -> bool {
-        (0..border.len()).all(|i| self.tile.get(self.tile.rows()-1, self.tile.cols()-1-i) == Some(&border[i]))
+        (0..border.len()).all(|i| self.tile.get_rc(self.tile.rows()-1, self.tile.cols()-1-i) == Some(&border[i]))
     }
 
     fn matches_border_right(&self, border: &[u8]) -> bool {
-        (0..border.len()).all(|i| self.tile.get(i, self.tile.cols()-1) == Some(&border[i]))
+        (0..border.len()).all(|i| self.tile.get_rc(i, self.tile.cols()-1) == Some(&border[i]))
     }
 
     fn matches_border_right_rev(&self, border: &[u8]) -> bool {
-        (0..border.len()).all(|i| self.tile.get(self.tile.rows()-1-i, self.tile.cols()-1) == Some(&border[i]))
+        (0..border.len()).all(|i| self.tile.get_rc(self.tile.rows()-1-i, self.tile.cols()-1) == Some(&border[i]))
     }
 
     fn matches_border(&self, border: &[u8]) -> bool {
@@ -81,7 +81,7 @@ impl Tile {
     fn highlight_pattern(&mut self, offset_row: usize, offset_col: usize, pattern: &SimpleGrid) -> bool {
         for row in 0..pattern.rows() {
             for col in 0..pattern.cols() {
-                if pattern.get(row, col) != Some(&b'.') && self.tile.get(offset_row+row, offset_col+col) != Some(&b'#') {
+                if pattern.get_rc(row, col) != Some(&b'.') && self.tile.get_rc(offset_row+row, offset_col+col) != Some(&b'#') {
                     return false;
                 }
             }
@@ -89,8 +89,8 @@ impl Tile {
         // Pattern found!
         for row in 0..pattern.rows() {
             for col in 0..pattern.cols() {
-                if pattern.get(row, col) != Some(&b'.') {
-                    self.tile.set(offset_row+row, offset_col+col, *pattern.get(row, col).unwrap());
+                if pattern.get_rc(row, col) != Some(&b'.') {
+                    self.tile.set_rc(offset_row+row, offset_col+col, *pattern.get_rc(row, col).unwrap());
                 }
             }
         }
@@ -172,7 +172,7 @@ fn compose_image(tiles: Vec<Vec<Tile>>) -> SimpleGrid {
                 for c in 1..tile_cols - 1 {
                     let new_r = tr * (tile_rows - 2) + r - 1;
                     let new_c = tc * (tile_cols - 2) + c - 1;
-                    image.set(new_r, new_c, *tiles[tr][tc].tile.get(r, c).unwrap());
+                    image.set_rc(new_r, new_c, *tiles[tr][tc].tile.get_rc(r, c).unwrap());
                 }
             }
         }
@@ -257,7 +257,7 @@ O....OO....OO....OOO
 
     println!("{}", oriented_image.tile);
 
-    (corner_product, oriented_image.tile.values().filter(|(_, c)| **c == b'#').count())
+    (corner_product, oriented_image.tile.cells_rc().filter(|(_, c)| **c == b'#').count())
 }
 
 fn main() {
