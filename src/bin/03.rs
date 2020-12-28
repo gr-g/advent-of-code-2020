@@ -3,7 +3,7 @@ use advent_of_code_2020::grid::SimpleGrid;
 fn trees_on_slope( grid: &SimpleGrid, slope_right: usize, slope_down: usize ) -> usize {
     let (mut row, mut col) = (slope_down, slope_right);
     let mut count = 0;
-    while let Some(c) = grid.get_rc(row, col) {
+    while let Some(c) = grid.get(row, col) {
         if c == &b'#' { count += 1; }
         row = row + slope_down;
         col = (col + slope_right) % grid.cols();

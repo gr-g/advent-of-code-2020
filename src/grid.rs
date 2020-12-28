@@ -24,7 +24,7 @@ impl Location {
         Location{ x: self.x + dir.dx, y: self.y + dir.dy }
     }
 
-    pub fn go_until<F>(&self, dir: &Direction, f: F) -> Option<Location> where
+    pub fn go_until<F>(&self, dir: &Direction, f: F) -> Location where
         F: Fn(&Location) -> bool {
         (1..).find_map(|n| {
             let pos = self.go(&dir.times(n));
@@ -33,7 +33,7 @@ impl Location {
             } else {
                 None
             }
-        })
+        }).unwrap()
     }
 
     pub fn distance(&self, other: &Location) -> i64 {
@@ -69,28 +69,8 @@ impl Direction {
     }
 }
 
-// A trait for 2-dimensional maps with cells at integer coordinates,
-// where each cell contains a char.
-pub trait Grid {
-    fn x_min(&self) -> i64;
-
-    fn x_max(&self) -> i64;
-
-    fn y_min(&self) -> i64;
-
-    fn y_max(&self) -> i64;
-
-    fn get(&self, l: &Location) -> Option<char>;
-
-    fn insert(&mut self, l: Location, c: char) -> Option<char>;
-
-    fn remove(&mut self, l: &Location) -> Option<char>;
-
-    fn cells(&self) -> Box<dyn Iterator<Item = (Location, char)> + '_>;
-}
-
-// A grid of ascii characters with fixed size. Cells are considered filled
-// if they contain ascii graphic characters, otherwise they are considered empty.
+// A fixed-size grid of bytes, with values accessed by row/column
+// with get()/set(), or by Location with get_by_location().
 #[derive(Clone, Debug)]
 pub struct SimpleGrid {
     rows: usize,
@@ -125,70 +105,51 @@ impl SimpleGrid {
         self.cols
     }
 
-    pub fn get_rc(&self, row: usize, col: usize) -> Option<&u8> {
-        self.data.get(row * self.cols + col).filter(|c| c.is_ascii_graphic())
+    pub fn get(&self, row: usize, col: usize) -> Option<&u8> {
+        if row < self.rows && col < self.cols {
+            self.data.get(row * self.cols + col)
+        } else {
+            None
+        }
     }
 
-    pub fn set_rc(&mut self, row: usize, col: usize, v: u8) {
+    pub fn set(&mut self, row: usize, col: usize, v: u8) {
+        assert!(row < self.rows && col < self.cols);
         self.data[row * self.cols + col] = v;
     }
 
-    pub fn cells_rc(&self) -> impl Iterator<Item = ((usize, usize), &u8)> {
+    pub fn entries(&self) -> impl Iterator<Item = ((usize, usize), &u8)> {
         (0..self.rows).flat_map(move |row| {
             (0..self.cols).filter_map(move |col| {
                 self.data.get(row * self.cols + col).map(|c| ((row, col), c))
             })
         })
     }
-}
 
-impl Grid for SimpleGrid {
-    fn x_min(&self) -> i64 {
-        0
+    pub fn values(&self) -> impl Iterator<Item = &u8> {
+        (0..self.rows).flat_map(move |row| {
+            (0..self.cols).filter_map(move |col| {
+                self.data.get(row * self.cols + col)
+            })
+        })
     }
 
-    fn x_max(&self) -> i64 {
-        self.cols as i64 - 1
-    }
-
-    fn y_min(&self) -> i64 {
-        0
-    }
-
-    fn y_max(&self) -> i64 {
-        self.rows as i64 - 1
-    }
-
-    fn get(&self, l: &Location) -> Option<char> {
+    pub fn get_by_location(&self, l: &Location) -> Option<&u8> {
         if l.x >= 0 && (l.x as usize) < self.cols && l.y >= 0 && (l.y as usize) < self.rows {
-            self.get_rc(l.y as usize, l.x as usize).map(|v| *v as char)
+            self.data.get(l.y as usize * self.cols + l.x as usize)
         } else {
             None
         }
     }
 
-    fn insert(&mut self, l: Location, c: char) -> Option<char> {
-        assert!(l.x >= 0 && (l.x as usize) < self.cols && l.y >= 0 && (l.y as usize) < self.rows);
-        assert!(c.is_ascii_graphic());
-        let prev = self.get(&l);
-        self.set_rc(l.y as usize, l.x as usize, c as u8);
-        prev
-    }
-
-    fn remove(&mut self, l: &Location) -> Option<char> {
-        if l.x >= 0 && (l.x as usize) < self.cols && l.y >= 0 && (l.y as usize) < self.rows {
-            let prev = self.get(&l);
-            self.set_rc(l.y as usize, l.x as usize, 0);
-            prev
-        } else {
-            None
-        }
-    }
-
-    fn cells(&self) -> Box<dyn Iterator<Item = (Location, char)> + '_> {
-        Box::new(self.cells_rc().map(|((row, col), c)| {
-            (Location{ x: col as i64, y: row as i64 }, *c as char)
-        }))
+    pub fn entries_by_location(&self) -> impl Iterator<Item = (Location, &u8)> {
+        (0..self.rows).flat_map(move |row| {
+            (0..self.cols).filter_map(move |col| {
+                self.data.get(row * self.cols + col).map(|c| {
+                    (Location{ x: col as i64, y: row as i64 }, c)
+                })
+            })
+        })
     }
 }
 
@@ -196,7 +157,8 @@ impl Display for SimpleGrid {
     fn fmt(&self, f: &mut std::fmt::Formatter) -> std::fmt::Result {
         for row in 0..self.rows {
             for col in 0..self.cols {
-                write!(f, "{}", *self.get_rc(row, col).unwrap_or(&b' ') as char)?;
+                let c = *self.get(row, col).filter(|v| v.is_ascii_graphic()).unwrap_or(&b' ') as char;
+                write!(f, "{}", c)?;
             }
             writeln!(f)?;
         }

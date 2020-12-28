@@ -9,7 +9,7 @@ impl ActiveCubes {
     fn create_from(s: &str) -> ActiveCubes {
         let mut cubes = HashSet::new();
         let g = SimpleGrid::create_from(s);
-        for ((row, col), c) in g.cells_rc() {
+        for ((row, col), c) in g.entries() {
             if c == &b'#' {
                 cubes.insert((col as i64, row as i64, 0, 0));
             }
