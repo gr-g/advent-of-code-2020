@@ -7,16 +7,14 @@ struct TicketField {
 
 impl TicketField {
     fn create_from(s: &str) -> TicketField {
-        let mut parts = s.split(": ");
-        let name = parts.next().unwrap().to_string();
-        let ranges_list = parts.next().unwrap().split(" or ");
-        let mut ranges = Vec::new();
-        for range in ranges_list {
-            let mut range_parts = range.split('-');
-            let min = range_parts.next().unwrap().parse::<u64>().unwrap();
-            let max = range_parts.next().unwrap().parse::<u64>().unwrap();
-            ranges.push((min, max));
-        }
+        let (name, ranges) = s.split_once(": ").unwrap();
+        let name = name.to_string();
+        let ranges = ranges
+            .split(" or ")
+            .map(|range| range.split_once("-").unwrap())
+            .map(|(min, max)| (min.parse().unwrap(), max.parse().unwrap()))
+            .collect();
+
         TicketField { name, ranges, position: None /* unknown */ }
     }
 

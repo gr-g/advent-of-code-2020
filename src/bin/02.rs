@@ -5,18 +5,18 @@ struct DatabaseEntry {
 
 impl DatabaseEntry {
     fn create_from(s: &str) -> DatabaseEntry {
-        let mut parts = s.split(": ");
-        let mut policy_parts = parts.next().unwrap().split(' ');
-        let mut policy_nums = policy_parts.next().unwrap().split('-');
+        let (policy_str, password) = s.split_once(": ").unwrap();
+        let (policy_nums, policy_char) = policy_str.split_once(" ").unwrap();
+        let (policy_n1, policy_n2) = policy_nums.split_once("-").unwrap();
 
-        let policy = (
-            policy_nums.next().unwrap().parse().unwrap(),
-            policy_nums.next().unwrap().parse().unwrap(),
-            policy_parts.next().unwrap().chars().nth(0).unwrap(),
-        );
-        let password = parts.next().unwrap().to_string();
-
-        DatabaseEntry { policy, password }
+        DatabaseEntry {
+            policy: (
+                policy_n1.parse().unwrap(),
+                policy_n2.parse().unwrap(),
+                policy_char.chars().nth(0).unwrap()
+            ),
+            password: password.to_string()
+        }
     }
 
     fn is_valid1(&self) -> bool {

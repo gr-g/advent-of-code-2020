@@ -4,10 +4,9 @@ use std::collections::HashSet;
 fn solve(input: &str) -> (usize, usize) {
     let mut rules = HashMap::new();
     for l in input.lines() {
-        let mut parts = l.split(" bags contain ");
-        let outer = parts.next().unwrap();
-        let inner_parts = parts.next().unwrap().split(", ");
-        let inner: Vec<_> = inner_parts
+        let (outer, inner_list) = l.split_once(" bags contain ").unwrap();
+        let inner: Vec<_> = inner_list
+            .split(", ")
             .filter_map(|s| {
                 let mut words = s.split(' ');
                 Some((

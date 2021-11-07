@@ -6,14 +6,10 @@ struct Passport {
 
 impl Passport {
     fn create_from(s: &str) -> Passport {
-        let mut fields = HashMap::new();
-        for field in s.split_ascii_whitespace() {
-            let mut it = field.split(':');
-            fields.insert(
-                it.next().unwrap().to_string(),
-                it.next().unwrap().to_string()
-            );
-        }
+        let fields = s.split_ascii_whitespace()
+                      .map(|field| field.split_once(":").unwrap())
+                      .map(|(k, v)| (k.to_string(), v.to_string()))
+                      .collect();
         Passport { fields }
     }
 

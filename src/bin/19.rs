@@ -28,9 +28,9 @@ impl RuleSet {
     fn create_from(s: &str) -> RuleSet {
         let mut rules = HashMap::new();
         for line in s.lines() {
-            let mut line_parts = line.split(": ");
-            let id = line_parts.next().unwrap().parse::<usize>().unwrap();
-            let rule = line_parts.next().unwrap().split_whitespace().collect::<Vec<_>>();
+            let (id, rule) = line.split_once(": ").unwrap();
+            let id = id.parse::<usize>().unwrap();
+            let rule = rule.split_whitespace().collect::<Vec<_>>();
             rules.insert(id, Rule::create_from(&rule));
         }
         RuleSet{ rules }
@@ -70,9 +70,7 @@ impl RuleSet {
 }
 
 fn solve(input: &str) -> (usize, usize) {
-    let mut parts = input.split("\n\n");
-    let rules = parts.next().unwrap();
-    let messages = parts.next().unwrap();
+    let (rules, messages) = input.split_once("\n\n").unwrap();
 
     let ruleset = RuleSet::create_from(rules);
     let valid = messages.lines()

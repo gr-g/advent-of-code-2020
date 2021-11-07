@@ -46,9 +46,7 @@ fn solve(input: &str) -> (i64, i64) {
     let mut mask_zeros = 0;
 
     for line in input.lines() {
-        let mut parts = line.split(" = ");
-        let left = parts.next().unwrap();
-        let right = parts.next().unwrap();
+        let (left, right) = line.split_once(" = ").unwrap();
 
         if left == "mask" {
             mask_ones = 0;
